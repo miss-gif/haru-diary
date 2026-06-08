@@ -1,6 +1,6 @@
 # React Native 일기 앱 — 기술 스택 & 구현 가이드
 
-> Expo ~54 + expo-router ~6 기반. 프로덕션 레벨 일기 앱을 위한 기술 선택 근거와 구현 패턴 정리.
+> Expo ~56 + expo-router ~56 기반. 프로덕션 레벨 일기 앱을 위한 기술 선택 근거와 구현 패턴 정리.
 
 ---
 
@@ -12,35 +12,36 @@
 4. [생체인증 잠금 구현](#4-생체인증-잠금-구현)
 5. [개발 단계 (마일스톤)](#5-개발-단계-마일스톤)
 6. [주의사항 & 허위 패키지 경고](#6-주의사항--허위-패키지-경고)
+7. [추가 권장 스택 & 구현 주의](#7-추가-권장-스택--구현-주의)
 
 ---
 
 ## 1. 최종 기술 스택
 
-| 영역           | 라이브러리                                             | 비고                                     |
-| -------------- | ------------------------------------------------------ | ---------------------------------------- |
-| Runtime        | Expo ~54 + expo-router ~6                              | 파일 기반 라우팅                         |
-| DB             | drizzle-orm 0.45 + expo-sqlite 16                      | 타입세이프 SQLite, FTS5 전문검색         |
-| 설정 스토리지  | react-native-mmkv                                      | AsyncStorage 대체 (50× 빠름)             |
-| UI             | Tamagui + @gorhom/bottom-sheet 5 + @shopify/flash-list |                                          |
-| 그래픽/모션    | reanimated 4 / moti / @shopify/react-native-skia       |                                          |
-| 차트           | victory-native-xl                                      | ~~victory-native~~ → Skia 기반으로 교체  |
-| 리스트         | @shopify/flash-list                                    | 대규모 일기 목록 성능 최적화             |
-| 비동기 상태    | TanStack React Query 5                                 |                                          |
-| 앱 상태        | Zustand                                                | ~~Context × 13개~~ → 1–2개 스토어로 통합 |
-| 리치 텍스트    | @10play/tentap-editor                                  | Tiptap 기반, 현재 가장 활발히 유지보수   |
-| 사진 선택·크롭 | react-native-image-crop-picker                         |                                          |
-| 음성 입력      | @react-native-voice/voice                              | Expo config plugin 연동                  |
-| 위치·날씨      | expo-location + OpenWeatherMap API                     |                                          |
-| 알림           | expo-notifications                                     | 일기 작성 리마인더                       |
-| 생체인증       | expo-local-authentication                              | FaceID / 지문                            |
-| 보안 키 저장   | expo-secure-store                                      | PIN 해시 저장 (Keychain/Keystore)        |
-| 암호화         | @noble/ciphers                                         | AES-256, PIN 파생 키                     |
-| 파일 내보내기  | expo-file-system + expo-sharing                        | ~~react-native-fs~~ (bare RN 전용)       |
-| 달력 뷰        | react-native-calendars                                 | Wix 관리, 감정 마킹 지원                 |
-| i18n           | i18next (ko/en/ja)                                     | 한글 조사 처리 포함                      |
-| 날짜           | dayjs                                                  |                                          |
-| 검증           | zod                                                    |                                          |
+| 영역           | 라이브러리                                             | 비고                                           |
+| -------------- | ------------------------------------------------------ | ---------------------------------------------- |
+| Runtime        | Expo ~56 + expo-router ~56                              | 파일 기반 라우팅                               |
+| DB             | drizzle-orm 0.45 + expo-sqlite ~56                      | 타입세이프 SQLite, FTS5 전문검색               |
+| 설정 스토리지  | react-native-mmkv                                      | AsyncStorage 대체 (50× 빠름)                   |
+| UI             | Tamagui + @gorhom/bottom-sheet 5 + @shopify/flash-list |                                                |
+| 그래픽/모션    | reanimated 4 / moti / @shopify/react-native-skia       |                                                |
+| 차트           | victory-native (v40+)                                  | Skia 기반 재작성판 (repo명: victory-native-xl) |
+| 리스트         | @shopify/flash-list                                    | 대규모 일기 목록 성능 최적화                   |
+| 비동기 상태    | TanStack React Query 5                                 |                                                |
+| 앱 상태        | Zustand                                                | ~~Context × 13개~~ → 1–2개 스토어로 통합       |
+| 리치 텍스트    | @10play/tentap-editor                                  | Tiptap 기반, 현재 가장 활발히 유지보수         |
+| 사진 선택·크롭 | react-native-image-crop-picker                         |                                                |
+| 음성 입력      | @react-native-voice/voice                              | Expo config plugin 연동                        |
+| 위치·날씨      | expo-location + OpenWeatherMap API                     |                                                |
+| 알림           | expo-notifications                                     | 일기 작성 리마인더                             |
+| 생체인증       | expo-local-authentication                              | FaceID / 지문                                  |
+| 보안 키 저장   | expo-secure-store                                      | PIN 해시 저장 (Keychain/Keystore)              |
+| 암호화         | @noble/ciphers                                         | AES-256, PIN 파생 키                           |
+| 파일 내보내기  | expo-file-system + expo-sharing                        | ~~react-native-fs~~ (bare RN 전용)             |
+| 달력 뷰        | react-native-calendars                                 | Wix 관리, 감정 마킹 지원                       |
+| i18n           | i18next (ko/en/ja)                                     | 한글 조사 처리 포함                            |
+| 날짜           | dayjs                                                  |                                                |
+| 검증           | zod                                                    |                                                |
 
 ---
 
@@ -63,9 +64,9 @@
 
 | 기능             | 라이브러리                           |
 | ---------------- | ------------------------------------ |
-| 감정 이모지 선택 | react-native-rn-emoji-keyboard       |
+| 감정 이모지 선택 | rn-emoji-keyboard                    |
 | 감정 달력        | react-native-calendars (커스텀 마킹) |
-| 감정 통계 그래프 | victory-native-xl (스플라인 곡선)    |
+| 감정 통계 그래프 | victory-native (스플라인 곡선)       |
 | AI 감정 인사이트 | Claude API (감정 패턴 분석)          |
 
 ### 탐색 (Browse)
@@ -168,7 +169,8 @@ Zustand (useLockStore)     →  전역 잠금 상태 관리
 ### 설치
 
 ```bash
-npx expo install expo-local-authentication expo-secure-store
+npx expo install expo-local-authentication expo-secure-store expo-crypto react-native-mmkv
+npm i @noble/hashes
 ```
 
 `app.json`:
@@ -190,45 +192,62 @@ npx expo install expo-local-authentication expo-secure-store
 
 ### 보안 유틸리티 (`/lib/auth/secureStorage.ts`)
 
-PIN을 평문으로 저장하지 않고 SHA-256 해시로만 저장합니다.
-프로덕션에서는 `@noble/hashes`의 `pbkdf2`를 권장합니다.
+PIN을 평문으로 저장하지 않고 pbkdf2(SHA-256, 10만 라운드)로 파생한 키만 저장합니다.
+salt는 사용자별로 랜덤 생성해 SecureStore에 함께 보관합니다.
+
+> `crypto.subtle`(WebCrypto)은 Expo 런타임에 없으므로 사용 금지. 난수는 `expo-crypto`,
+> 해시·KDF는 순수 JS인 `@noble/hashes`(v2, ESM·서브경로 import)를 씁니다.
 
 ```ts
 import * as SecureStore from "expo-secure-store";
+import * as Crypto from "expo-crypto";
+import { pbkdf2Async } from "@noble/hashes/pbkdf2.js";
+import { sha256 } from "@noble/hashes/sha2.js";
 import { MMKV } from "react-native-mmkv";
 
 export const lockStorage = new MMKV({ id: "lock-settings" });
 
 const PIN_HASH_KEY = "diary_pin_hash";
+const PIN_SALT_KEY = "diary_pin_salt";
 
-async function hashPIN(pin: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(pin + "diary_salt_v1");
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hashBuffer))
+function toHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 }
 
+function fromHex(hex: string): Uint8Array {
+  return Uint8Array.from(hex.match(/.{2}/g)!.map((h) => parseInt(h, 16)));
+}
+
+// PIN + 사용자별 랜덤 salt로 pbkdf2 파생 (100k 라운드)
+async function derivePIN(pin: string, salt: Uint8Array): Promise<string> {
+  const key = await pbkdf2Async(sha256, pin, salt, { c: 100_000, dkLen: 32 });
+  return toHex(key);
+}
+
 export async function savePIN(pin: string) {
-  const hash = await hashPIN(pin);
+  const salt = Crypto.getRandomBytes(16);
+  const hash = await derivePIN(pin, salt);
+  await SecureStore.setItemAsync(PIN_SALT_KEY, toHex(salt));
   await SecureStore.setItemAsync(PIN_HASH_KEY, hash);
 }
 
 export async function verifyPIN(pin: string): Promise<boolean> {
-  const stored = await SecureStore.getItemAsync(PIN_HASH_KEY);
-  if (!stored) return false;
-  const hash = await hashPIN(pin);
-  return hash === stored;
+  const storedHash = await SecureStore.getItemAsync(PIN_HASH_KEY);
+  const storedSalt = await SecureStore.getItemAsync(PIN_SALT_KEY);
+  if (!storedHash || !storedSalt) return false;
+  const hash = await derivePIN(pin, fromHex(storedSalt));
+  return hash === storedHash;
 }
 
 export async function hasPIN(): Promise<boolean> {
-  const stored = await SecureStore.getItemAsync(PIN_HASH_KEY);
-  return stored !== null;
+  return (await SecureStore.getItemAsync(PIN_HASH_KEY)) !== null;
 }
 
 export async function deletePIN() {
   await SecureStore.deleteItemAsync(PIN_HASH_KEY);
+  await SecureStore.deleteItemAsync(PIN_SALT_KEY);
 }
 ```
 
@@ -334,6 +353,11 @@ export const useLockStore = create<LockStore>((set, get) => ({
 
   // 백그라운드 복귀 시 유예 시간 초과 여부 확인
   checkShouldLock: () => {
+    // 0 = 즉시 잠금 (백그라운드 복귀 시 무조건 잠금)
+    if (get().autoLockMinutes === 0) {
+      set({ isLocked: true });
+      return;
+    }
     const lastAuth = lockStorage.getNumber(LAST_AUTH_KEY) ?? 0;
     const autoLockMs = get().autoLockMinutes * 60 * 1000;
     const elapsed = Date.now() - lastAuth;
@@ -349,15 +373,7 @@ import { useBiometrics } from "@/lib/auth/useBiometrics";
 import { useLockStore } from "@/lib/auth/useLockStore";
 import { verifyPIN } from "@/lib/auth/secureStorage";
 import { useEffect, useRef, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Vibration,
-  Animated,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity } from "react-native";
 
 const MAX_ATTEMPTS = 5;
 
@@ -369,81 +385,47 @@ export function LockScreen() {
   const [pin, setPin] = useState("");
   const [attempts, setAttempts] = useState(0);
   const [error, setError] = useState("");
-  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const triedBiometric = useRef(false);
 
-  // 진입 시 즉시 생체인증 시도
+  // 진입 시 즉시 생체인증 시도 (isEnrolled는 비동기로 늦게 채워지므로 deps에 포함)
   useEffect(() => {
-    if (isBiometricEnabled && isEnrolled) tryBiometric();
-  }, []);
+    if (!triedBiometric.current && isBiometricEnabled && isEnrolled) {
+      triedBiometric.current = true;
+      tryBiometric();
+    }
+  }, [isBiometricEnabled, isEnrolled]);
 
   async function tryBiometric() {
     const success = await authenticate();
     if (success) unlock();
   }
 
-  function shake() {
-    Vibration.vibrate(400);
-    Animated.sequence([
-      Animated.timing(shakeAnim, {
-        toValue: 10,
-        duration: 60,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: -10,
-        duration: 60,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: 6,
-        duration: 60,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnim, {
-        toValue: 0,
-        duration: 60,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }
-
   async function handlePINChange(input: string) {
     setPin(input);
-    if (input.length === 4) {
-      const correct = await verifyPIN(input);
-      if (correct) {
-        unlock();
-        return;
-      }
+    if (input.length !== 4) return;
 
-      const next = attempts + 1;
-      setAttempts(next);
-      setPin("");
-      shake();
-      setError(
-        next >= MAX_ATTEMPTS
-          ? "시도 초과. 1분 후 다시 시도하세요."
-          : `PIN이 올바르지 않습니다. (${next}/${MAX_ATTEMPTS})`,
-      );
+    if (await verifyPIN(input)) {
+      unlock();
+      return;
     }
+
+    const next = attempts + 1;
+    setAttempts(next);
+    setPin("");
+    // 오답 피드백(흔들기/진동)은 여기서 트리거
+    setError(
+      next >= MAX_ATTEMPTS
+        ? "시도 초과. 1분 후 다시 시도하세요."
+        : `PIN이 올바르지 않습니다. (${next}/${MAX_ATTEMPTS})`,
+    );
   }
 
+  // 스타일·PIN 도트 표시는 생략 — 잠금 로직만 표기
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>일기 잠금</Text>
+    <View>
+      <Text>일기 잠금</Text>
 
-      <Animated.View style={{ transform: [{ translateX: shakeAnim }] }}>
-        <View style={styles.dotsRow}>
-          {[0, 1, 2, 3].map((i) => (
-            <View
-              key={i}
-              style={[styles.dot, i < pin.length && styles.dotFilled]}
-            />
-          ))}
-        </View>
-      </Animated.View>
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <Text>{error}</Text> : null}
 
       <TextInput
         value={pin}
@@ -452,12 +434,11 @@ export function LockScreen() {
         maxLength={4}
         secureTextEntry
         autoFocus
-        style={styles.hiddenInput}
       />
 
       {isBiometricEnabled && isEnrolled && (
-        <TouchableOpacity onPress={tryBiometric} style={styles.bioButton}>
-          <Text style={styles.bioLabel}>
+        <TouchableOpacity onPress={tryBiometric}>
+          <Text>
             {biometricType === "facial" ? "Face ID로 열기" : "지문으로 열기"}
           </Text>
         </TouchableOpacity>
@@ -465,29 +446,6 @@ export function LockScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 24,
-  },
-  title: { fontSize: 20, fontWeight: "500" },
-  dotsRow: { flexDirection: "row", gap: 16 },
-  dot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: "#888",
-  },
-  dotFilled: { backgroundColor: "#534AB7", borderColor: "#534AB7" },
-  error: { color: "#E24B4A", fontSize: 13 },
-  hiddenInput: { position: "absolute", opacity: 0, width: 0, height: 0 },
-  bioButton: { marginTop: 8, padding: 12 },
-  bioLabel: { color: "#534AB7", fontSize: 15 },
-});
 ```
 
 ### 앱 루트에 잠금 게이트 연결 (`/app/_layout.tsx`)
@@ -495,6 +453,7 @@ const styles = StyleSheet.create({
 ```tsx
 import { useEffect } from "react";
 import { AppState } from "react-native";
+import { Slot } from "expo-router";
 import { useLockStore } from "@/lib/auth/useLockStore";
 import { LockScreen } from "@/components/auth/LockScreen";
 
@@ -515,28 +474,6 @@ export default function RootLayout() {
 }
 ```
 
-```tsx
-// Tamagui 테마 토큰 정의 예시
-const diaryTokens = createTokens({
-  color: {
-    background: "#FAFAF8",
-    surface: "#F3F0EB",
-    accent: "#7C6EE8", // 포인트 컬러 — 앱 전체에서 일관 적용
-    text: "#1A1A1A",
-    textMuted: "#6B6B6B",
-  },
-  space: { sm: 8, md: 16, lg: 24 },
-  radius: { card: 16, button: 10 },
-});
-
-// 사용 시
-<YStack bg="$background" p="$md" borderRadius="$card">
-  <Text color="$text" fontSize={16}>
-    오늘의 일기
-  </Text>
-</YStack>;
-```
-
 ---
 
 ## 5. 개발 단계 (마일스톤)
@@ -549,6 +486,8 @@ const diaryTokens = createTokens({
 - [ ] 감정 태그 선택
 - [ ] 캘린더 뷰 (react-native-calendars)
 - [ ] PIN 잠금 + 생체인증
+- [ ] 시도 횟수 영속화 + 잠금 만료 (보안 필수 — §7 참조)
+- [ ] 에러 바운더리 (DB·SecureStore 오류 차단 — §7 참조)
 - [ ] 기본 타임라인 피드 (flash-list)
 - [ ] 다크모드 + i18n (ko/en)
 
@@ -558,9 +497,11 @@ const diaryTokens = createTokens({
 
 - [ ] 리치 텍스트 에디터 (@10play/tentap-editor)
 - [ ] 사진 첨부·크롭
+- [ ] 사진 documentDirectory 영구 저장 (캐시 삭제 방지 — §7 참조)
 - [ ] 위치·날씨 자동 태깅
 - [ ] FTS5 전문 검색
-- [ ] 감정 통계 그래프 (victory-native-xl)
+- [ ] FTS5 인덱스 동기화 (저장과 동일 트랜잭션 — §7 참조)
+- [ ] 감정 통계 그래프 (victory-native)
 
 ### Phase 3 — 리텐션 기능 (2–3주)
 
@@ -606,96 +547,31 @@ const diaryTokens = createTokens({
 
 ### 기존 스택에서 변경된 항목 요약
 
-| 항목          | 변경 전        | 변경 후             | 이유                            |
-| ------------- | -------------- | ------------------- | ------------------------------- |
-| 설정 스토리지 | async-storage  | react-native-mmkv   | 50× 성능, 암호화 내장, 동기 API |
-| 차트          | victory-native | victory-native-xl   | Skia 기반, 유지보수 활성화      |
-| 상태 관리     | Context × 13   | Zustand             | 리렌더링 최소화, 코드 단순화    |
-| 리스트        | FlatList       | @shopify/flash-list | 대규모 목록 성능                |
+| 항목          | 변경 전                  | 변경 후                    | 이유                                    |
+| ------------- | ------------------------ | -------------------------- | --------------------------------------- |
+| 설정 스토리지 | async-storage            | react-native-mmkv          | 50× 성능, 암호화 내장, 동기 API         |
+| 차트          | victory-native v36 (SVG) | victory-native v40+ (Skia) | Skia 기반 재작성, 같은 패키지 메이저 업 |
+| 상태 관리     | Context × 13             | Zustand                    | 리렌더링 최소화, 코드 단순화            |
+| 리스트        | FlatList                 | @shopify/flash-list        | 대규모 목록 성능                        |
 
 ---
 
-전체적으로 잘 정리된 스택입니다. 몇 가지 보완할 포인트를 짚어드릴게요.
+## 7. 추가 권장 스택 & 구현 주의
 
-## 잘 된 부분
+### 추가 권장 스택
 
-- MMKV vs SQLite 역할 분리가 명확함
-- 생체인증 레이어 구조(LocalAuth → SecureStore → MMKV → Zustand)가 논리적
-- 허위 패키지 경고 섹션이 실용적
+| 영역            | 추가 권장              | 이유                              |
+| --------------- | ---------------------- | --------------------------------- |
+| 에러 추적       | `@sentry/react-native` | 크래시·예외 수집                  |
+| DB 마이그레이션 | `drizzle-kit`          | 스키마 변경 시 사용자 데이터 보존 |
+| 테스트          | Jest + Testing Library | Phase 1부터                       |
+| OTA 업데이트    | `expo-updates`         | 스토어 심사 없이 핫픽스           |
 
----
+### 구현 시 필수 처리
 
-## 보완이 필요한 부분
-
-### 1. 보안 — 가장 중요
-
-**PIN 해싱이 취약합니다.**
-
-현재 코드가 `SHA-256 + 고정 salt("diary_salt_v1")`를 사용하는데, 문서 안에도 pbkdf2 권장이라고 적혀있지만 실제 코드엔 반영이 안 됐습니다. 프로덕션 전에 반드시 교체해야 합니다.
-
-```ts
-// 현재 (취약)
-crypto.subtle.digest("SHA-256", encode(pin + "diary_salt_v1"));
-
-// 권장
-import { pbkdf2 } from "@noble/hashes/pbkdf2";
-import { sha256 } from "@noble/hashes/sha256";
-// 사용자별 랜덤 salt를 SecureStore에 함께 저장
-pbkdf2(sha256, pin, randomSalt, { c: 100_000, dkLen: 32 });
-```
-
-**시도 초과 처리가 메모리에만 있습니다.**
-
-`attempts` state가 컴포넌트 언마운트 시 초기화되므로, 앱을 강제 종료하면 잠금이 풀립니다. MMKV나 SecureStore에 시도 횟수 + 잠금 만료 시각을 저장해야 합니다.
+- **시도 횟수 영속화** — `LockScreen`의 `attempts`가 컴포넌트 state에만 있어 앱 강제 종료 시 잠금 우회됨. MMKV/SecureStore에 실패 횟수 + 잠금 만료 시각을 저장해야 함 (현재 `"1분 후 다시 시도"` 메시지는 미구현 상태).
+- **에러 바운더리** — DB 마이그레이션·SecureStore 접근 실패를 잡도록 `_layout.tsx` 루트를 `<ErrorBoundary fallback={<CriticalErrorScreen />}>`로 감쌀 것.
+- **FTS5 동기화** — 일기 저장과 FTS 가상 테이블 업데이트를 같은 트랜잭션에서 처리. 분리되면 검색 결과 불일치.
+- **사진 저장 경로** — `react-native-image-crop-picker` 결과를 `expo-file-system`의 `documentDirectory`로 복사. 캐시 디렉토리는 OS가 삭제함.
 
 ---
-
-### 2. 아키텍처 — 누락된 레이어
-
-**에러 바운더리가 없습니다.**
-
-DB 마이그레이션 실패, SecureStore 접근 오류 등 앱 시작 시 크리티컬한 오류를 잡을 장치가 필요합니다.
-
-```ts
-// app/_layout.tsx에 추가 필요
-<ErrorBoundary fallback={<CriticalErrorScreen />}>
-  {isLocked ? <LockScreen /> : <Slot />}
-</ErrorBoundary>
-```
-
-**drizzle 마이그레이션 전략이 없습니다.**
-
-Phase 1 MVP 이후 스키마가 바뀔 때 기존 사용자 데이터를 어떻게 처리할지 초기에 설계해야 합니다. `drizzle-kit`의 migration 파일 관리 방식을 스택에 명시하는 게 좋습니다.
-
----
-
-### 3. 성능 — 간과하기 쉬운 부분
-
-**사진 저장 경로 전략이 없습니다.**
-
-`react-native-image-crop-picker`로 선택한 이미지를 어디에 저장할지 명시가 없습니다. 캐시 디렉토리에 두면 OS가 삭제할 수 있으므로, `expo-file-system`의 `documentDirectory`로 복사하는 로직이 필요합니다.
-
-**FTS5 인덱스 업데이트 시점이 불명확합니다.**
-
-일기 저장 시 FTS 가상 테이블도 같은 트랜잭션 안에서 업데이트해야 합니다. 별도 처리로 분리되면 검색 결과가 불일치할 수 있습니다.
-
----
-
-### 4. 누락된 스택 항목
-
-| 영역            | 현재      | 추가 권장                            |
-| --------------- | --------- | ------------------------------------ |
-| 에러 추적       | 없음      | Sentry (`@sentry/react-native`)      |
-| DB 마이그레이션 | 언급 없음 | `drizzle-kit` 명시                   |
-| 테스트          | 없음      | Jest + Testing Library (Phase 1부터) |
-| OTA 업데이트    | 없음      | `expo-updates`                       |
-
----
-
-### 5. 사소하지만 실제로 막히는 것
-
-`checkShouldLock`이 `autoLockMinutes === 0`(즉시 잠금)을 처리하지 않습니다. 백그라운드로 갔다 바로 돌아와도 잠기길 원하는 사용자 설정을 지원하려면 0 케이스를 명시적으로 처리해야 합니다.
-
----
-
-**결론적으로** 기술 선택 자체는 훌륭하고, Phase 1 MVP 진행에 큰 무리는 없습니다. 다만 PIN 해싱과 시도 횟수 영속화는 보안 관련이라 MVP 전에 반드시 수정하고, 나머지는 Phase 2 전에 챙기면 됩니다.
